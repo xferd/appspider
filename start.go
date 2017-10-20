@@ -6,33 +6,32 @@ import (
 )
 
 func main() {
-
+    var ch = make(chan string, 10)
     for pkgname := spider.NextPackage(); pkgname != ""; pkgname = spider.NextPackage() {
-        log.Println(pkgname)
-        rawurl := "https://play.google.com/store/apps/details?id=" + pkgname
+        ch <- pkgname
+        go work(pkgname, ch)
+    }
+}
 
-        html, err := spider.Fetch(rawurl)
-        if err != nil {
-            log.Println("err", err);
-            continue
-        }
+func work(pkgname string, ch chan string) {
+    defer func() {
+        <- ch
+        }()
 
-        if filename, ok := spider.SaveHTMLFile(pkgname, html); ok {
-            spider.FindPkgnames(&html)
-            spider.UpdatePackage(pkgname)
-            log.Println(filename)
-        }
+    log.Println(pkgname)
+    rawurl := "https://play.google.com/store/apps/details?id=" + pkgname
+
+    html, err := spider.Fetch(rawurl)
+    if err != nil {
+        log.Println("err", err);
+        return
     }
 
-    // resp, err := spider.Fetch("https://play.google.com/store/apps/details?id=com.whatsapp")
-    // if err != nil {
-    //     // handle error
-    //     log.Println("err", err);
-    //     return;
-    // }
-
-    // log.Println(resp)
-    // spider.AddPackage("some.com")
-    // spider.NextPackage()
-    // log.Println("")
+    if _, ok := spider.SaveHTMLFile(pkgname, html); ok {
+        new_pkgnames := spider.FindPkgnames(&html)
+        for _, new_pkg := range new_pkgnames {
+            spider.AddPackage(new_pkg)
+        }
+        spider.UpdatePackage(pkgname)
+    }
 }

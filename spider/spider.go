@@ -8,6 +8,7 @@ import (
     "os"
     "hash/crc32"
     "fmt"
+    "log"
 )
 
 var (
@@ -25,6 +26,7 @@ func init() {
 }
 
 func Fetch(rawurl string) (response string, err error) {
+    log.Println("fetch url:", rawurl)
     resp, err := client.Get(rawurl)
     if err != nil {
         return "", err;
