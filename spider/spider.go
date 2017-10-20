@@ -51,6 +51,7 @@ func pathOfPkgname(pkgname string) (path string) {
 
 func SaveHTMLFile(pkgname string, html string) (filename string, ok bool) {
     ok = true
+    return
     path := pathOfPkgname(pkgname)
     if err := os.MkdirAll(path, 0777); err != nil {
         panic(err)

@@ -38,7 +38,7 @@ func init() {
 func NextPackage() string {
     //查询数据
     // rows, err := db.Query("SELECT * FROM his LIMIT 1")
-    query := fmt.Sprintf("SELECT * FROM his WHERE crawltime='0000-00-00 00:00:00' AND id>%d LIMIT 1", last_id)
+    query := fmt.Sprintf("SELECT * FROM his WHERE crawltime='0000-00-00 00:00:00' AND id>%d ORDER BY id LIMIT 1", last_id)
     // log.Println(query)
     rows, err := db.Query(query)
     checkErr(err)

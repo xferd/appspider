@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-    var ch = make(chan string, 10)
+    var ch = make(chan string, 100)
     for pkgname := spider.NextPackage(); pkgname != ""; pkgname = spider.NextPackage() {
         ch <- pkgname
         go work(pkgname, ch)
@@ -18,7 +18,6 @@ func work(pkgname string, ch chan string) {
         <- ch
         }()
 
-    log.Println(pkgname)
     rawurl := "https://play.google.com/store/apps/details?id=" + pkgname
 
     html, err := spider.Fetch(rawurl)
@@ -32,6 +31,6 @@ func work(pkgname string, ch chan string) {
         for _, new_pkg := range new_pkgnames {
             spider.AddPackage(new_pkg)
         }
-        spider.UpdatePackage(pkgname)
+        go spider.UpdatePackage(pkgname)
     }
 }
