@@ -14,6 +14,7 @@ var (
     stmt_add_package *sql.Stmt
     stmt_upd_package *sql.Stmt
     last_id int
+    ch_sql chan string
 )
 
 const (
@@ -33,6 +34,8 @@ func init() {
     checkErr(err)
 
     last_id = 0
+
+    ch_sql = make(chan string, 128)
 }
 
 func NextPackage() string {
@@ -58,7 +61,9 @@ func NextPackage() string {
 }
 
 func AddPackage(pkgname string) error {
+    ch_sql <- pkgname
     defer func() {
+        <- ch_sql
         if r := recover(); r != nil {
             // log.Println(r)
         }
@@ -72,7 +77,9 @@ func AddPackage(pkgname string) error {
 }
 
 func UpdatePackage(pkgname string) error {
+    ch_sql <- pkgname
     defer func() {
+        <- ch_sql
         if r := recover(); r != nil {
             log.Println(r)
         }
