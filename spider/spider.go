@@ -41,7 +41,7 @@ func Fetch(rawurl string) (response string, err error) {
 }
 
 func pathOfPkgname(pkgname string) (path string) {
-    const ROOT string = "/Users/leeyan/appspider/html"
+    const ROOT string = "/home/liyan34/appspider/html"
     ieee := crc32.NewIEEE()
     io.WriteString(ieee, pkgname)
     s := ieee.Sum32()
