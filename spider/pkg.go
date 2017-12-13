@@ -13,7 +13,6 @@ var (
     db *sql.DB
     stmt_add_package *sql.Stmt
     stmt_upd_package *sql.Stmt
-    last_id int
     ch_sql chan string
 )
 
@@ -33,31 +32,44 @@ func init() {
     stmt_upd_package, err = db.Prepare("UPDATE his SET crawltime=? WHERE pkgname=?")
     checkErr(err)
 
-    last_id = 0
-
     ch_sql = make(chan string, 128)
 }
 
-func NextPackage() string {
+func NextPackage(ch_pkg chan<- string) {
     //查询数据
-    // rows, err := db.Query("SELECT * FROM his LIMIT 1")
-    query := fmt.Sprintf("SELECT * FROM his WHERE crawltime='0000-00-00 00:00:00' AND id>%d ORDER BY id LIMIT 1", last_id)
+    var last_id = 0
     // log.Println(query)
-    rows, err := db.Query(query)
-    checkErr(err)
-
-    defer rows.Close()
-    var pkgname string = ""
-    for rows.Next() {
-        var id int
-        var createtime string
-        var crawltime string
-        err = rows.Scan(&id, &pkgname, &createtime, &crawltime)
-        last_id = id
+    for {
+        query := fmt.Sprintf("SELECT * FROM his WHERE crawltime='0000-00-00 00:00:00' AND id>%d ORDER BY id LIMIT 100", last_id)
+        rows, err := db.Query(query)
         checkErr(err)
-        break
+
+        if to_id := nextPkg(rows, ch_pkg); to_id != 0 {
+            last_id = to_id
+        }
     }
-    return pkgname
+
+}
+
+func nextPkg(rows *sql.Rows, ch_pkg chan<- string) (last_id int) {
+    defer rows.Close()
+
+    var id int
+    var pkgname string
+    var createtime string
+    var crawltime string
+
+    for rows.Next() {
+        err := rows.Scan(&id, &pkgname, &createtime, &crawltime)
+        if nil != err {
+            log.Println(err)
+            panic(err)
+        }
+        checkErr(err)
+        ch_pkg <- pkgname
+        last_id = id
+    }
+    return
 }
 
 func AddPackage(pkgname string) error {
@@ -77,6 +89,7 @@ func AddPackage(pkgname string) error {
 }
 
 func UpdatePackage(pkgname string) error {
+    log.Println("update package", pkgname)
     ch_sql <- pkgname
     defer func() {
         <- ch_sql

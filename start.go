@@ -11,43 +11,48 @@ var (
 )
 
 func main() {
-    var ch_http = make(chan string, 256)
-    for {
-        for pkgname := spider.NextPackage(); pkgname != ""; pkgname = spider.NextPackage() {
+    var ch_http = make(chan string, 128)
+    var ch_pkg = make(chan string)
+
+    go spider.NextPackage(ch_pkg)
+
+    for pkgname := range ch_pkg {
+        go func() {
             ch_http <- pkgname
-            wg.Add(1)
-            go work(pkgname, ch_http)
-        }
-        // wg.Wait()
+            work(pkgname)
+            <- ch_http
+        }()
     }
 }
 
-func work(pkgname string, ch chan string) {
-    var work_wg sync.WaitGroup
-
+func work(pkgname string) {
     defer func() {
-        <- ch
-        work_wg.Wait()
-        wg.Done()
-        }()
+        if r := recover(); nil != r {
+            log.Println("fetch err", r);
+        }
+    }()
 
     rawurl := "https://play.google.com/store/apps/details?id=" + pkgname
 
-    html, err := spider.Fetch(rawurl)
-    if err != nil {
-        log.Println("err", err);
-        return
-    }
+    var ch_resp = make(chan string)
 
-    if _, ok := spider.SaveHTMLFile(pkgname, html); ok {
-        work_wg.Add(1)
+    go func(ch chan string) {
+        defer func() {
+            close(ch)
+        }()
+        html := <- ch
+        // log.Println(html)
+        spider.SaveHTMLFile(pkgname, html);
+        var ch_newpkg = make(chan string)
         go func() {
-            new_pkgnames := spider.FindPkgnames(&html)
-            for _, new_pkg := range new_pkgnames {
+            for new_pkg := range ch_newpkg {
                 spider.AddPackage(new_pkg)
             }
             spider.UpdatePackage(pkgname)
-            work_wg.Done()
         }()
-    }
+
+        spider.FindPkgnames(&html, ch_newpkg)
+    }(ch_resp)
+
+    spider.Fetch(rawurl, ch_resp)
 }

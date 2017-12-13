@@ -15,20 +15,18 @@ func init() {
     log.Println("")
 }
 
-func FindPkgnames(html *string) (pkgnames []string) {
+func FindPkgnames(html *string, ch chan string) {
     match := r_pkgname.FindAllStringSubmatch(*html, -1)
-    pkgnames = func(m [][]string) (pkgnames []string) {
-            var pkg_map = make(map[string]int)
-            for _, ln := range m {
-                var name = ln[1]
-                if _, in := pkg_map[name]; in {
-                    continue
-                }
-                pkg_map[name] = 1
-                pkgnames = append(pkgnames, name)
+    func(m [][]string) {
+        var pkg_map = make(map[string]struct{})
+        for _, ln := range m {
+            var name = ln[1]
+            if _, in := pkg_map[name]; in {
+                continue
             }
-            return
-        }(match)
-    // log.Println(pkgnames)
-    return
+            pkg_map[name] = struct{}{}
+            ch <- name
+        }
+    }(match)
+    close(ch)
 }

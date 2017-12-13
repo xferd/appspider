@@ -25,19 +25,20 @@ func init() {
     }
 }
 
-func Fetch(rawurl string) (response string, err error) {
+func Fetch(rawurl string, ch chan string) {
     log.Println("fetch url:", rawurl)
     resp, err := client.Get(rawurl)
     if err != nil {
-        return "", err;
+        panic(err)
     }
 
     defer resp.Body.Close()
     body, err := ioutil.ReadAll(resp.Body)
     if err != nil {
-        return "", err
+        panic(err)
     }
-    return string(body), nil
+    log.Println("fetched url")
+    ch <- string(body)
 }
 
 func pathOfPkgname(pkgname string) (path string) {
