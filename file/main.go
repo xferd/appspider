@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"log"
 	"hash/crc32"
+	"flag"
 )
 
 type FileInfo struct {
@@ -20,8 +21,12 @@ var (
 )
 
 func main() {
+	// var dir string
+	dir := flag.String("dir", "/", "dirname")
+	flag.Parse()
+
 	chFile := make(chan FileInfo)
-	go walkDir(chFile, dirA)
+	go walkDir(chFile, *dir)
 	for info := range chFile {
 		func() {
 			fp, _ := os.Open(info.Path)
